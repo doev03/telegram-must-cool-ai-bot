@@ -22,13 +22,13 @@ class FusionImageGenerator {
     return result.pocketId;
   }
 
-  #awaitSuccessStatus = async (pocketId: string) => {
+  #awaitSuccessStatus = async (pocketId: string, sleepSeconds: number) => {
     const result = await this.#requestWrapper(
       () => this.#fusionApi.checkPocket({ pocketId: pocketId })
     );
     if (result === 'INITIAL' || result === "PROCESSING") {
-      await sleep(5e3);
-      await this.#awaitSuccessStatus(pocketId);
+      await sleep(sleepSeconds);
+      await this.#awaitSuccessStatus(pocketId, 5e3);
     }
   }
 
@@ -41,7 +41,7 @@ class FusionImageGenerator {
   generateImage = async (query: string, style: string) => {
     try {
       const pocketId = await this.#run(query, style);
-      await this.#awaitSuccessStatus(pocketId);
+      await this.#awaitSuccessStatus(pocketId, 12e3);
       const result = await this.#checkEntities(pocketId);
       if (result[0].status != 'SUCCESS' || !result[0].response[0]) {
         throw 'failure';
