@@ -28,7 +28,7 @@ class FusionBot {
 
     if (image != null) {
       const buffer = Buffer.from(image, 'base64');
-      await this.bot.sendPhoto(msg.chat.id, buffer);
+      await this.bot.sendPhoto(msg.chat.id, buffer, {caption: msg.text});
     }
   }
 }
