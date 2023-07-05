@@ -1,27 +1,43 @@
 import TelegramBotApi from 'node-telegram-bot-api';
 
-import FusionImageGenerator from './fusion/image-generator.js';
 import ChatsHistory from './services/chats-history.js';
+import BotUtils from './utils/bot-functions.js';
+import FusionBot from './services/fusion-bot.js';
+import { StoreSession } from 'telegram/sessions';
+import GramBot from './services/gram-bot.js';
 
-const token = '6320698083:AAGBinqmaQMcuNKFsKXOySR6hXmf5VCCyQw';
+const DEBUG = false;
+
+const debugToken = '6367312297:AAGhlx0FndqRtUW5KnVBbsUDhJLTzWAZjsg';
+const prodToken = '6320698083:AAGBinqmaQMcuNKFsKXOySR6hXmf5VCCyQw';
+const token = DEBUG ? debugToken : prodToken;
+
+const apiId = 28603421;
+const apiHash = '10f3cb67a642a5865afef427e70cf5f4';
+const storeSession = new StoreSession('my_session');
+const gramBot = new GramBot(apiId, apiHash, storeSession);
 
 const bot = new TelegramBotApi(token, { polling: true });
-
-const fusionImageGenerator = new FusionImageGenerator();
+const chatsHistory = new ChatsHistory();
+const fusionBot = new FusionBot(bot, chatsHistory);
 
 const main = async () => {
   await chatsHistory.init();
+  await gramBot.init(token);
   bot.on('message', onMessage);
 }
-
-const chatsHistory = new ChatsHistory();
 
 const onMessage = async (msg: TelegramBotApi.Message) => {
   const chat = msg.chat;
   try {
     if (chatsHistory.isInProgress(chat.id)) {
-      await bot.deleteMessage(chat.id, msg.message_id);
-      await sendInProgressMessage(msg.chat.id,'Пожалуйста подождите ответа на предыдущее сообщение');
+      chatsHistory.addInProgressMessage(chat.id, msg.message_id);
+      await BotUtils.sendInProgressMessage(
+        bot,
+        chatsHistory,
+        msg.chat.id,
+        'Пожалуйста подождите ответа на предыдущее сообщение',
+      );
       return;
     }
     await chatsHistory.write(chat);
@@ -30,36 +46,11 @@ const onMessage = async (msg: TelegramBotApi.Message) => {
 
     await commandHandler(msg);
 
-    await deleteInProgressMessages(chat.id);
+    await BotUtils.deleteInProgressMessages(gramBot, chatsHistory, chat.id);
     chatsHistory.setInProgress(chat.id, false);
   } catch (e) {
     await bot.sendMessage(chat.id, 'Что-то пошло не так.');
     throw e;
-  }
-}
-
-const sendInProgressMessage = async (chatId: number, message: string) => {
-  const sendedMessage = await bot.sendMessage(chatId, message);
-  chatsHistory.addInProgressMessage(chatId, sendedMessage.message_id);
-}
-
-const deleteInProgressMessages = async (chatId: number) => {
-  const inProgressMessages = chatsHistory.getInProgressMessages(chatId);
-  if (!inProgressMessages) return;
-
-  chatsHistory.deleteInProgressMessages(chatId);
-  for (const messageId of inProgressMessages) {
-    await bot.deleteMessage(chatId, messageId);
-  }
-}
-
-const generateAndSendImage = async (msg: TelegramBotApi.Message) => {
-  await sendInProgressMessage(msg.chat.id, 'Ожидайте, картина генерится...');
-  const image = msg.text == null ? null : await fusionImageGenerator.generateImage(msg.text, '');
-
-  if (image != null) {
-    const buffer = Buffer.from(image, 'base64');
-    await bot.sendPhoto(msg.chat.id, buffer);
   }
 }
 
@@ -68,11 +59,11 @@ const onStart = async (msg: TelegramBotApi.Message) => {
 }
 
 const commandHandler = (msg: TelegramBotApi.Message) => {
-  switch(msg.text) {
+  switch (msg.text) {
     case '/start':
       return onStart(msg);
     default:
-      return generateAndSendImage(msg);
+      return fusionBot.generateAndSendImage(msg);
   }
 }
 

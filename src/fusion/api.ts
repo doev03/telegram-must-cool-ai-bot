@@ -26,7 +26,18 @@ class FusionApi {
     }
     ))
   }
-  sendImageToGenerate({ queueType = defaultQueueType, query, image, style }: { queueType?: string, query: string, image?: string, style: string }) {
+
+  sendImageToGenerate({
+    queueType = defaultQueueType,
+    query,
+    image,
+    style,
+  }: {
+    queueType?: string,
+    query: string,
+    image?: string,
+    style: string,
+  }) {
     const o = new FormData;
     return o.append("queueType", queueType),
       o.append("query", query),
@@ -38,12 +49,14 @@ class FusionApi {
       }
       ))
   }
+
   checkPocket({ pocketId = "6373cb85fcc243b83219fe68", queueType = "generate" }) {
     return axiosInst.get(imageApi.checkImage(queueType, pocketId)).then((e => e.data)).catch((e => {
       throw e
     }
     ))
   }
+
   checkEntities({ pocketId = "6373cb85fcc243b83219fe68", queueType = "generate" }) {
     return axiosInst.get(imageApi.checkEntities(queueType, pocketId)).then((e => e.data)).catch((e => {
       throw e

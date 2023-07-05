@@ -5,7 +5,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 class FusionImageGenerator {
   #fusionApi = new FusionApi();
 
-  #requestWrapper = async (func: Function) => {
+  async #requestWrapper(func: Function) {
     const data = await func();
     if (!data.success) {
       throw 'failure';
@@ -17,7 +17,7 @@ class FusionImageGenerator {
   /// Returns pocketId
   #run = async (query: string, style: string) => {
     const result = await this.#requestWrapper(
-      () => this.#fusionApi.sendImageToGenerate({query: query, style: style})
+      () => this.#fusionApi.sendImageToGenerate({ query: query, style: style })
     );
     return result.pocketId;
   }
