@@ -14,7 +14,7 @@ const token = DEBUG ? debugToken : prodToken;
 
 const apiId = 28603421;
 const apiHash = '10f3cb67a642a5865afef427e70cf5f4';
-const storeSession = new StoreSession('my_session');
+const storeSession = new StoreSession('gram_session');
 const gramBot = new GramBot(apiId, apiHash, storeSession);
 
 const bot = new TelegramBotApi(token, { polling: true });
