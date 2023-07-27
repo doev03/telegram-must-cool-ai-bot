@@ -6,48 +6,33 @@ class FusionImageGenerator {
   #fusionApi = new FusionApi();
 
   async #requestWrapper(func: Function) {
-    const data = await func();
-    if (!data.success) {
-      throw 'failure';
-    } else {
-      return data.result;
-    }
+    return func();
   }
 
   /// Returns pocketId
-  #run = async (query: string, style: string) => {
+  #run = async (query: string, style?: string) => {
     const result = await this.#requestWrapper(
-      () => this.#fusionApi.sendImageToGenerate({ query: query, style: style })
+      () => this.#fusionApi.sendImageToGenerate({query: query, style: style })
     );
-    return result.pocketId;
+    return result.uuid;
   }
 
-  #awaitSuccessStatus = async (pocketId: string, sleepSeconds: number) => {
+  async #awaitSuccessStatus(pocketId: string, sleepSeconds: number) : Promise<any> {
     const result = await this.#requestWrapper(
-      () => this.#fusionApi.checkPocket({ pocketId: pocketId })
+      () => this.#fusionApi.checkStatus({ uuid: pocketId })
     );
-    if (result === 'INITIAL' || result === "PROCESSING") {
+    if (result.status != 'DONE') {
       await sleep(sleepSeconds);
-      await this.#awaitSuccessStatus(pocketId, 5e3);
+      return this.#awaitSuccessStatus(pocketId, 5e3);
     }
+    return result;
   }
 
-  #checkEntities = (pocketId: string) => {
-    return this.#requestWrapper(
-      () => this.#fusionApi.checkEntities({ pocketId: pocketId })
-    );
-  }
-
-  generateImage = async (query: string, style: string) => {
+  generateImage = async (query: string, style?: string) => {
     try {
       const pocketId = await this.#run(query, style);
-      await this.#awaitSuccessStatus(pocketId, 12e3);
-      const result = await this.#checkEntities(pocketId);
-      if (result[0].status != 'SUCCESS' || !result[0].response[0]) {
-        throw 'failure';
-      } else {
-        return result[0].response[0];
-      }
+      const result = await this.#awaitSuccessStatus(pocketId, 8e3);
+      return result.images[0];
     } catch (e) {
       console.log(e);
     }

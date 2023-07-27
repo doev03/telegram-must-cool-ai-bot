@@ -24,7 +24,7 @@ class FusionBot {
       msg.chat.id,
       'Ожидайте, картина генерится...',
     );
-    const image = msg.text == null ? null : await this.fusionImageGenerator.generateImage(msg.text, '');
+    const image = msg.text == null ? null : await this.fusionImageGenerator.generateImage(msg.text);
 
     if (image != null) {
       const buffer = Buffer.from(image, 'base64');

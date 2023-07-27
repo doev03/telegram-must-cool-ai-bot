@@ -1,15 +1,17 @@
 import axios from "axios";
 import FormData from 'form-data';
 
-const baseUrl = "https://api.fusionbrain.ai/api/v1"
+const baseUrl = "https://api.fusionbrain.ai/web/api/v1"
   , imageApi = {
     checkQueue: `${baseUrl}/text2image/inpainting/checkQueue`,
-    sendImageToGenerate: `${baseUrl}/text2image/run`,
-    checkImage: (queueType: string, pocketId: string) => `${baseUrl}/text2image/${queueType}/pockets/${pocketId}/status`,
-    checkEntities: (queueType: string, pocketId: string) => `${baseUrl}/text2image/${queueType}/pockets/${pocketId}/entities`
+    sendImageToGenerate: `${baseUrl}/text2image/run?model_id=1`,
+    checkImage: (queueType: string, pocketId: string) => `${baseUrl}/text2image/pockets/${pocketId}/status`,
+    checkEntities: (queueType: string, pocketId: string) => `${baseUrl}/text2image/${queueType}/pockets/${pocketId}/entities`,
+    checkStatus: (uuid: string) => `${baseUrl}/text2image/status/${uuid}`
   };
 
-const defaultQueueType = 'generate';
+const defaultType = 'GENERATE';
+const defaultStyle = 'DEFAULT';
 
 const headers = {
   "origin": "https://editor.fusionbrain.ai"
@@ -28,40 +30,37 @@ class FusionApi {
   }
 
   sendImageToGenerate({
-    queueType = defaultQueueType,
+    type = defaultType,
     query,
     image,
-    style,
+    style = defaultStyle,
   }: {
-    queueType?: string,
+    type?: string,
     query: string,
     image?: string,
-    style: string,
+    style?: string,
   }) {
-    const o = new FormData;
-    return o.append("queueType", queueType),
-      o.append("query", query),
-      o.append("preset", "1"),
-      o.append("style", style || ""),
-      image && o.append("image", image),
+    const o = new FormData();
+    const params = {
+      'type': type,
+      'style': style,
+      'width': 1024,
+      'height': 1024,
+      'generateParams': {
+        'query': query
+      }
+    };
+    return o.append('params', JSON.stringify(params), { contentType: 'application/json' }),
       axiosInst.post(imageApi.sendImageToGenerate, o).then((e => e.data)).catch((e => {
         throw e
       }
-      ))
+      ));
   }
 
-  checkPocket({ pocketId = "6373cb85fcc243b83219fe68", queueType = "generate" }) {
-    return axiosInst.get(imageApi.checkImage(queueType, pocketId)).then((e => e.data)).catch((e => {
-      throw e
-    }
-    ))
-  }
-
-  checkEntities({ pocketId = "6373cb85fcc243b83219fe68", queueType = "generate" }) {
-    return axiosInst.get(imageApi.checkEntities(queueType, pocketId)).then((e => e.data)).catch((e => {
-      throw e
-    }
-    ))
+  checkStatus({ uuid }: { uuid: string }) {
+    return axios.get(imageApi.checkStatus(uuid)).then((e) => e.data).catch((e => {
+      throw e;
+    }));
   }
 }
 
